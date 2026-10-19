@@ -1,0 +1,206 @@
+const SOLUTIONS={
+  "actions": {
+    "1.1": "Stop the bot’s speech when a genuine interruption begins, then capture the new intent before continuing.",
+    "1.2": "Distinguish a brief acoustic event from a sustained user interruption; resume naturally after a false trigger.",
+    "1.3": "Treat short listening acknowledgments as backchannels when the context supports it, rather than automatically stopping the bot.",
+    "1.4": "Inspect the whole utterance: an acknowledgment followed by a useful value should be captured as an answer.",
+    "1.5": "Keep listening while asking a question so an early answer is not discarded; retain the complete value.",
+    "1.6": "Yield the floor to the caller instead of competing, then clarify any information lost in the overlap.",
+    "1.7": "Recognize “go ahead” as permission to resume the interrupted explanation, rather than a new task value.",
+    "1.8": "Answer an aliveness check briefly and explain the current wait without storing “hello” as task data.",
+    "1.9": "Treat repeated answers during a delay as one input unless the user explicitly changes the value.",
+    "1.10": "Use conversational context alongside silence to decide whether a turn is complete.",
+    "1.11": "Measure the delay after a completed answer and shorten unnecessary waiting; use a brief acknowledgment for genuine processing delays.",
+    "2.1": "Keep the turn open across filler words when the sentence remains incomplete.",
+    "2.2": "Allow thinking time after an unfinished phrase and avoid acting on a partial account number.",
+    "2.3": "Acknowledge the request to look something up and allow a longer wait before a gentle check-in.",
+    "2.4": "Treat a hesitant answer as uncertain and clarify before using it for a consequential action.",
+    "2.5": "Accumulate number or ID chunks across pauses, then read back the complete value before using it.",
+    "2.6": "Avoid endpointing on a breath alone; consider whether the sentence and task value are complete.",
+    "2.7": "Keep an incomplete address open and use a gentle check-in if the caller remains silent.",
+    "2.8": "Use a bounded silence policy: check whether the caller is present, offer a next step, and end cleanly if there is no response.",
+    "3.1": "Replace the earlier value with the explicitly corrected value before updating a downstream system.",
+    "3.2": "Drop the abandoned intent and confirm the replacement task if its consequences are unclear.",
+    "3.3": "Interpret the completed restart rather than forcing an intent from the unfinished fragment.",
+    "3.4": "Do not create multiple requests from repeated words within the same utterance.",
+    "3.5": "Replace the value for the same field rather than appending the correction as an additional instruction.",
+    "3.6": "Wait for the completed replacement word before resolving the value.",
+    "3.7": "Allow repeated or prolonged sounds without timing out or demanding that the person speak differently.",
+    "3.8": "Discard an abandoned partial value when the caller switches the requested contact or identification method.",
+    "4.1": "Filter brief cough-like events from genuine interruptions, while still accepting speech immediately afterward.",
+    "4.2": "Avoid opening a new task turn from a sigh or breath alone; use surrounding speech to interpret frustration.",
+    "4.3": "Do not infer task content from laughter alone; retain meaningful speech around it.",
+    "4.4": "Use non-speech filtering so mouth noises do not create new turns or false transcripts.",
+    "4.5": "Test speech detection with keyboard noise and reject typing-only events without suppressing the caller’s voice.",
+    "4.6": "Avoid treating a single impact noise as an instruction or confirmation.",
+    "4.7": "Clarify uncertain words after traffic or sirens; offer another input method if audio remains unreliable.",
+    "4.8": "Separate household noise from directed speech and avoid repeatedly restarting the flow for non-speech sounds.",
+    "5.1": "Recognize when the caller addresses someone else; wait rather than treating the side question as an instruction.",
+    "5.2": "Ask the authorized caller to confirm a consequential answer supplied by another person.",
+    "5.3": "Establish who can authorize the transaction and resolve conflicting answers before proceeding.",
+    "5.4": "Ignore unrelated household interruptions unless the caller redirects the conversation.",
+    "5.5": "Do not accept media speech as transaction input solely because it is intelligible.",
+    "5.6": "Test with realistic nearby conversations and verify that cross-talk cannot create confirmations.",
+    "5.7": "Allow the caller to consult a helper, then capture the answer when they return to the bot.",
+    "5.8": "Extract the relayed value while confirming that the caller intends to use it.",
+    "6.1": "Use echo cancellation and check that the bot’s own speech cannot trigger an interruption or instruction.",
+    "6.2": "Test recognition on the actual telephone audio format, especially names, consonants, and digits.",
+    "6.3": "Treat broken audio as incomplete input; request the affected portion again rather than guessing missing words.",
+    "6.4": "Explain that no answer was heard and offer a mute check or alternate input after a bounded wait.",
+    "6.5": "Allow the audio connection to stabilize after a device switch, then recheck any value spoken during the transition.",
+    "6.6": "Detect or explicitly handle being placed on hold without interpreting music as user instructions.",
+    "6.7": "Do not treat a notification beep as speech; recheck a value if the beep masks part of it.",
+    "6.8": "Define how keypad and speech inputs are accepted, prioritized, and deduplicated for the same field.",
+    "6.9": "Use an answering-machine branch with an appropriate message and termination behavior instead of continuing the live-user flow.",
+    "6.10": "Detect automated menus and route only through a deliberately supported flow; stop unsupported bot-to-bot loops.",
+    "7.1": "Preserve digit chunks and resolve the corrected sequence before treating it as a complete identifier.",
+    "7.2": "Apply the correction to the intended digit sequence and read back the final identifier.",
+    "7.3": "Clarify confusable numbers explicitly, especially before using them as amounts or identifiers.",
+    "7.4": "Support spelling and negative qualifiers such as “no H”; confirm the resulting name.",
+    "7.5": "Interpret the letter as the value and the example word as disambiguation, not part of the name.",
+    "7.6": "Normalize spoken punctuation into email syntax, then confirm the full address without guessing missing parts.",
+    "7.7": "Treat unit and apartment corrections as replacements of the same address field; confirm the full delivery destination.",
+    "7.8": "Resolve relative dates using the relevant date and time zone, and confirm an exact date and time before booking.",
+    "7.9": "Clarify the amount and currency when spoken shorthand is ambiguous; confirm before executing a payment or refund.",
+    "8.1": "Track each requested task and acknowledge their order so one intent does not silently disappear.",
+    "8.2": "Retain useful information supplied early and avoid asking for the same fields again unnecessarily.",
+    "8.3": "Clarify an indirect yes/no answer when the next step has meaningful consequences.",
+    "8.4": "Use the caller’s explicit final correction rather than the first yes/no word in the turn.",
+    "8.5": "Represent the condition separately from permission and check that it holds before acting.",
+    "8.6": "Handle a clarification request by repeating or rephrasing the relevant question, then return to the current task.",
+    "8.7": "Update the mistaken field, acknowledge the correction, and invalidate any pending action that uses the old value.",
+    "8.8": "Pause the current action, ask what was misunderstood, and repair the conversation state before resuming.",
+    "8.9": "Stop the pending task when the user abandons it; distinguish actions already completed from actions that can still be canceled.",
+    "8.10": "Recognize common human-agent requests and offer a real escalation path with a clear fallback when unavailable.",
+    "9.1": "Acknowledge repeated effort and use what the caller already supplied instead of repeating the same prompt.",
+    "9.2": "Keep the response brief and calm, address the service failure, and offer escalation when needed.",
+    "9.3": "Allow uncertainty; clarify the minimum necessary information instead of converting an unsure answer into a final fact.",
+    "9.4": "Offer an approved private or alternate input route rather than demanding sensitive information aloud.",
+    "9.5": "Explain the bot’s identity and purpose, and offer a trusted way for the caller to verify the interaction.",
+    "9.6": "Avoid treating a sarcastic phrase as authorization; clarify the intended response when it affects the task.",
+    "9.7": "Preserve meaningful words around laughter instead of discarding the entire utterance.",
+    "9.8": "Slow the interaction, allow extra time, and offer appropriate human support rather than repeatedly forcing recognition.",
+    "10.1": "Evaluate supported accents and dialects on the actual tasks; offer a fallback if recognition repeatedly fails.",
+    "10.2": "Make supported-language behavior explicit and clarify mixed-language content rather than guessing or switching unpredictably.",
+    "10.3": "Capture a fast answer in full and confirm important values without repeatedly asking for everything again.",
+    "10.4": "Allow longer gaps between words without treating every pause as a completed turn.",
+    "10.5": "Test low-volume speech detection and offer a practical alternative when the audio cannot be captured reliably.",
+    "10.6": "Handle clipping as an audio-quality issue and recheck affected content instead of inferring a complete answer.",
+    "10.7": "Accommodate repetitions and blocks with flexible timing and an accessible alternative to repeated failed voice input.",
+    "10.8": "Test with people whose speech differs from the recognizer’s typical inputs and provide a usable non-voice or human route.",
+    "10.9": "Allow more time, use clear short prompts, and avoid assuming that a slower response means abandonment.",
+    "10.10": "Clarify uncertain input and use the product’s established authorization process rather than inferring eligibility from voice alone.",
+    "11.1": "Shorten prompts to one useful question at a time and move optional explanations behind a request for more detail.",
+    "11.2": "Identify the processing delay, acknowledge genuine waits, and prevent repeated user answers from creating duplicate actions.",
+    "11.3": "Ask natural, specific questions and accept semantically valid answers beyond a narrow expected phrase.",
+    "11.4": "Treat an explicit correction as a state update that must happen before the next tool call.",
+    "11.5": "Reduce redundant confirmations and avoid processing impatient repeated “yes” responses as multiple approvals.",
+    "11.6": "Add confirmation where wrong values have consequential effects, particularly before executing external changes.",
+    "11.7": "Review phrasing, prompt length, response timing, and recovery behavior alongside voice delivery.",
+    "11.8": "Accept natural-language equivalents and explain available choices only when the caller needs them.",
+    "12.1": "Track whether the required disclosure was delivered and handle interruptions using the product’s approved disclosure process.",
+    "12.2": "Preserve the stated permission limits and stop or redirect the flow when those limits cannot be honored.",
+    "12.3": "Acknowledge refusal and offer an approved alternate verification route or explain why the task cannot continue.",
+    "12.4": "Avoid repeating unexpected sensitive details; apply the approved redaction, retention, and routing policy throughout the pipeline.",
+    "12.5": "Use valid existing verification state where the approved process permits it and explain any required repeat check.",
+    "12.6": "Provide the approved human handoff path for sensitive workflows, including a clear fallback if an agent is unavailable."
+  },
+  "segments": {
+    "1": {
+      "steps": [
+        "Review interruption detection and turn completion together, using the meaning of the utterance as well as acoustic signals.",
+        "Keep captured input and interrupted output aligned so resuming a response does not reuse stale task state."
+      ],
+      "expected": "The bot yields or continues appropriately, captures the complete directed answer, and does not duplicate an action.",
+      "regression": "Short acknowledgments or harmless sounds must not prevent a real interruption from working."
+    },
+    "2": {
+      "steps": [
+        "Tune waiting behavior for the task: reading an identifier can need a different pause policy from a short yes/no answer.",
+        "Separate a temporary partial answer from a complete value; use a bounded, helpful check-in when silence continues."
+      ],
+      "expected": "The caller can finish the answer and the final complete value is used exactly once.",
+      "regression": "Additional waiting must not leave a truly absent caller in an endless listening loop."
+    },
+    "3": {
+      "steps": [
+        "Track which field or intent the correction replaces, including repairs within the same utterance.",
+        "Recheck consequential values and pending actions after the repair, rather than relying on the earlier interpretation."
+      ],
+      "expected": "Only the completed, corrected instruction reaches the next action; abandoned fragments do not survive as active values.",
+      "regression": "Ordinary repetitions must not erase a legitimate value or create extra tasks."
+    },
+    "4": {
+      "steps": [
+        "Evaluate speech detection and noise handling on realistic mixes of caller speech and non-speech sounds.",
+        "Clarify uncertain content instead of manufacturing an answer from a noisy transcript."
+      ],
+      "expected": "The sound does not generate a false instruction, and meaningful caller speech before or after it is preserved.",
+      "regression": "More aggressive filtering must not suppress quiet voices or valid short answers."
+    },
+    "5": {
+      "steps": [
+        "Use conversational context and caller confirmation to establish whether speech is directed to the bot.",
+        "Require clear authorization for consequential changes when speaker ownership or intent is uncertain."
+      ],
+      "expected": "Unrelated background speech cannot authorize an action, while the caller can still use an intentional helper.",
+      "regression": "Do not reject a valid relayed answer merely because another person helped provide it."
+    },
+    "6": {
+      "steps": [
+        "Exercise the flow through the production call channel and supported devices, including degraded audio.",
+        "Define explicit handling for incomplete input, alternative input channels, and automated systems."
+      ],
+      "expected": "The bot follows the intended device or call-state branch and no false or duplicate downstream action occurs.",
+      "regression": "A recovery path must not repeatedly restart the same failed call state."
+    },
+    "7": {
+      "steps": [
+        "Keep raw interpretation separate from the validated business value, and clarify missing or ambiguous components.",
+        "Confirm consequential values before use and verify that the receiving system gets the final corrected representation."
+      ],
+      "expected": "The final field value is complete, correctly formatted, and reflected accurately in the downstream request.",
+      "regression": "Normalization must not silently change a valid name, identifier, date, or amount."
+    },
+    "8": {
+      "steps": [
+        "Represent repairs, conditions, cancellations, and escalation as changes to the current task state.",
+        "Reevaluate any pending action after a change and make the next step clear to the caller."
+      ],
+      "expected": "The bot follows the caller’s final intended request and does not execute an abandoned or unauthorized action.",
+      "regression": "The repair must not silently drop another task the caller still wants completed."
+    },
+    "9": {
+      "steps": [
+        "Respond to the service need behind the emotion with a concise acknowledgment and a concrete next step.",
+        "Offer an appropriate alternate route when the current interaction is not working."
+      ],
+      "expected": "The response addresses the caller’s stated concern and offers a usable next step without forcing an unreliable answer.",
+      "regression": "Do not infer permission, intent, or a sensitive personal condition from emotional tone alone."
+    },
+    "10": {
+      "steps": [
+        "Test recognition, timing, and recovery with the range of speakers your product serves.",
+        "Make an alternate input or human support route reachable after repeated recognition failures."
+      ],
+      "expected": "The caller can complete the task or reach a usable alternative without being trapped in repeated failed recognition.",
+      "regression": "Changes for one speaking pattern must not make other supported speaking patterns less usable."
+    },
+    "11": {
+      "steps": [
+        "Inspect prompt wording, timing, and prior turns before attributing the failure solely to the user’s speech.",
+        "Change the underlying interaction design and repeat the same scenario to see whether it reduces the failure."
+      ],
+      "expected": "The changed bot behavior addresses the trigger, and correct information survives through the next task step.",
+      "regression": "Shorter or faster prompts must still provide the information needed for a meaningful answer."
+    },
+    "12": {
+      "steps": [
+        "Translate the product’s approved consent, privacy, authentication, and escalation requirements into explicit flow conditions.",
+        "Exercise refusals, restrictions, interruptions, and handoff failures before enabling consequential actions."
+      ],
+      "expected": "The next action respects the caller’s stated limits and the approved workflow; blocked steps have a clear alternate path.",
+      "regression": "An alternate route must not bypass a required authorization or expose sensitive information."
+    }
+  }
+};
