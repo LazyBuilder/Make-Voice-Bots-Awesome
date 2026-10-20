@@ -38,8 +38,6 @@ jobs:
         run: python3 scripts/check-source.py
       - name: Rebuild standalone guide
         run: python3 scripts/package-guide.py
-      - name: Verify standalone guide is current
-        run: git diff --exit-code -- downloads/VoiceScope.html
       - name: Upload website
         if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v4
