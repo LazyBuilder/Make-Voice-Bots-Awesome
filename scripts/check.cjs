@@ -1,37 +1,44 @@
-process.chdir(require('path').resolve(__dirname,'..'));
-const fs=require('fs'),vm=require('vm'),assert=require('assert');const nodes={};function node(s){return nodes[s]??=( {value:({'#context':'all','#riskType':'all','#handling':'all','#risk':'0','#status':'all','#sort':'source'})[s]||'',innerHTML:'',textContent:'',style:{},querySelectorAll:()=>[],addEventListener(){},scrollIntoView(){},showModal(){},classList:{toggle(){}}})};const c=vm.createContext({document:{querySelector:node},localStorage:{getItem:()=>null},location:{hash:'',pathname:'/',search:''},history:{replaceState(){}},window:{addEventListener(){}},setTimeout,console});vm.runInContext(fs.readFileSync('site/data.js','utf8')+fs.readFileSync('site/solutions.js','utf8')+fs.readFileSync('site/risk-tags.js','utf8')+fs.readFileSync('site/app.js','utf8'),c);assert.equal(vm.runInContext('filtered().length',c),104);vm.runInContext("symptoms.add('0-0');recommend()",c);assert.deepEqual(Array.from(vm.runInContext('focusSegments',c)).sort((a,b)=>a-b),[1,11]);assert.equal(vm.runInContext('filtered().length',c),19);vm.runInContext("symptoms.add('4-1');recommend()",c);assert.deepEqual(Array.from(vm.runInContext('focusSegments',c)).sort((a,b)=>a-b),[1,8,11]);vm.runInContext('symptoms.clear();recommend()',c);assert.equal(vm.runInContext('filtered().length',c),104);assert.equal(vm.runInContext('new Set(questions.flatMap(q=>q.options.flatMap(o=>o[1]))).size',c),12);console.log('Passed: full library, symptom filtering, combined answers, reset, and coverage of all 12 segments.');
+const fs = require('fs'), path = require('path'), vm = require('vm'), assert = require('assert');
+const site = process.argv[2] ? path.resolve(process.argv[2]) : path.resolve(__dirname,'../site');
+const sources = ['data.js','solutions.js','risk-tags.js','segment-guide.js','concepts.js','visuals.js','applicability.js','app.js'].map(f=>fs.readFileSync(path.join(site,f),'utf8')).join('\n');
+function page(id, hash='') {
+ const nodes = {};
+ const modes=[{dataset:{mode:"bad"},setAttribute(){}},{dataset:{mode:"good"},setAttribute(){}}];
+ const risks=[{dataset:{risk:"data"}}];
+ const defaults = {'#risk':'0','#riskType':'all','#handling':'all','#sort':'source'};
+ const document = {body:{dataset:{segment:String(id),root:id?'../':''}},querySelector(selector){
+  if(!id && ['#tagHelp','#cards','#search','#risk','#riskType','#handling','#sort','#reset'].includes(selector))return null;
+  return nodes[selector] ||= {value:defaults[selector]||'',innerHTML:'',textContent:'',style:{},querySelectorAll:query=>selector==="#conceptVisual"&&query==="[data-mode]"?modes:selector==="#riskCoverage"&&query==="[data-risk]"?risks:[],addEventListener(){},scrollIntoView(){},showModal(){},close(){},setAttribute(){}};
+ }};
+ const sandbox=vm.createContext({document,location:{hash,pathname:id?'/repo/segments/test.html':'/repo/index.html',search:'',href:''},history:{replaceState(){}},navigator:{},setTimeout,console,window:{addEventListener(){}}});
+ vm.runInContext(sources,sandbox);
+ return {nodes,modes,risks,run:script=>vm.runInContext(script,sandbox)};
+}
+const home=fs.readFileSync(path.join(site,'index.html'),'utf8');
+assert.equal((home.match(/class="segment-card"/g)||[]).length,12);assert.equal((home.match(/class="segment-thumbnail"/g)||[]).length,12);
+assert(!home.includes('id="questions"'));assert(!home.includes('id="cards"'));assert(!home.includes('id="library"'));
+assert.equal(page(0).nodes['#cards'],undefined);
+const behaviorIds=new Set();
+for(let segment=1;segment<=12;segment++){
+ const p=page(segment),rows=p.run('filtered()');
+ const slug=p.run('SEGMENT_GUIDE.find(s=>s.id===PAGE_SEGMENT).slug');const pageHtml=fs.readFileSync(path.join(site,'segments',slug+'.html'),'utf8');assert(!pageHtml.includes('<aside>'));assert(pageHtml.includes('workspace-full'));
+ assert(p.nodes['#conceptScene'].innerHTML.includes('concept-step'));assert.equal((p.nodes['#conceptScene'].innerHTML.match(/class="concept-step"/g)||[]).length,4);
+ assert(p.nodes['#riskCoverage'].innerHTML.includes('not likelihood or incident rates'));
+ p.modes[1].onclick();assert(p.nodes['#conceptScene'].innerHTML.includes('concept-flow good'));assert(p.nodes['#conceptScene'].innerHTML.includes('Suggested approach'));
+ p.modes[0].onclick();assert(p.nodes['#conceptScene'].innerHTML.includes('concept-flow bad'));
+ p.risks[0].onclick();assert.equal(p.nodes['#riskType'].value,'data');assert(p.run("filtered().every(b=>RISK_GUIDE.behaviors[b.id].risks.includes('data'))"));p.run('reset()');
+ assert.equal(p.run('CONCEPTS[PAGE_SEGMENT].good.length'),4);
+ const art=p.run('CONCEPTS[PAGE_SEGMENT].art');assert(art);assert(fs.existsSync(path.join(site,'assets',art)));assert(p.run("CONCEPTS[PAGE_SEGMENT].artAlt.includes('AI VOICE BOT')"));assert(p.nodes['#conceptVisual'].innerHTML.includes('Open larger image'));
+ assert(p.nodes['#segmentApplicability'].innerHTML.includes('When this segment matters'));assert(p.nodes['#segmentApplicability'].innerHTML.includes('May be out of scope when'));assert(rows.length>0);assert(rows.every(b=>b.segment===segment));
+ for(const b of rows){behaviorIds.add(b.id);p.run(`detail('${b.id}')`);const html=p.nodes['#modalBody'].innerHTML;assert(html.includes('How to address it'));assert(html.includes('DOES THIS APPLY TO YOUR APPLICATION?'));assert(html.includes('May be out of scope when'));assert(p.run(`Boolean(APPLICABILITY.behaviors['${b.id}'].applies&&APPLICABILITY.behaviors['${b.id}'].notApplicable)`));assert(html.includes('Source risk scores at a glance'));assert.equal((html.match(/class="risk-score-line"/g)||[]).length,3);assert(html.includes('Handle in live call'));assert(html.includes('Handle after call'));assert(!html.includes('undefined'));}
+ p.run("document.querySelector('#riskType').value='data';render()");assert(p.run("filtered().every(b=>RISK_GUIDE.behaviors[b.id].risks.includes('data'))"));
+ p.run("document.querySelector('#handling').value='after';render()");assert(p.run("filtered().every(b=>b.segment===PAGE_SEGMENT&&RISK_GUIDE.behaviors[b.id].primary==='after')"));
+ p.run('reset()');assert.equal(p.run('filtered().length'),rows.length);
+ p.run("document.querySelector('#search').value='nonexistent-phrase-xyz';render()");assert.equal(p.run('filtered().length'),0);
+}
+assert.equal(behaviorIds.size,104);
+const deep=page(3,'#behavior=3.1');assert(deep.nodes['#modalBody'].innerHTML.includes('Self-correction'));
+const route=page(1);route.run("detail('7.1')");assert(route.run('location.href').includes('../segments/value-capture.html#behavior=7.1'));
+console.log('Passed: 12 home segment cards, no home behavior list or questionnaire, 104 details on the right pages, filters, reset, deep links, cross-segment links, interactive failure/fix diagrams, chart filtering, and 104 source-score visuals.');
 
-assert.equal(vm.runInContext('DATA.behaviors.every(b=>SOLUTIONS.actions[b.id]&&SOLUTIONS.segments[b.segment])',c),true); vm.runInContext("detail('1.1')",c); assert(nodes['#modalBody'].innerHTML.includes('How to address it')); assert(!nodes['#modalBody'].innerHTML.includes('textarea')); console.log('Passed: all 104 handling guides, problem detail, no note fields.');
-
-assert(vm.runInContext('DATA.behaviors.every(b=>RISK_GUIDE.behaviors[b.id].risks.length>0&&RISK_GUIDE.behaviors[b.id].risks.every(k=>RISK_GUIDE.types[k])&&RISK_GUIDE.behaviors[b.id].live&&RISK_GUIDE.behaviors[b.id].after)',c));
-vm.runInContext("reset();document.querySelector('#riskType').value='consent'",c);
-assert(vm.runInContext("filtered().some(b=>b.id==='8.5')&&!filtered().some(b=>b.id==='4.1')",c));
-vm.runInContext("document.querySelector('#riskType').value='all';document.querySelector('#handling').value='after'",c);
-assert.equal(vm.runInContext('filtered().length',c),16);
-vm.runInContext("document.querySelector('#riskType').value='data'",c);
-assert(vm.runInContext('filtered().every(b=>RISK_GUIDE.behaviors[b.id].primary==="after"&&RISK_GUIDE.behaviors[b.id].risks.includes("data"))',c));
-for(const id of vm.runInContext('DATA.behaviors.map(b=>b.id)',c)){vm.runInContext(`detail('${id}')`,c);assert(nodes['#modalBody'].innerHTML.includes('Handle in live call'));assert(nodes['#modalBody'].innerHTML.includes('Handle after call'));assert(!nodes['#modalBody'].innerHTML.includes('undefined'));}
-vm.runInContext('reset()',c);assert.equal(vm.runInContext('filtered().length',c),104);
-console.log('Passed: risk and handling coverage on all 104 details, consent exclusion, primary-stage filter, combined filters, reset.');
-
-// Several selections in one question must not outweigh an independent question.
-vm.runInContext("symptoms.clear();symptoms.add('0-0');symptoms.add('0-1');symptoms.add('0-2');symptoms.add('3-1');recommend()",c);
-assert(vm.runInContext('focusSegments.includes(6)',c));
-assert.equal(vm.runInContext('focusSegments.length',c),3);
-assert(nodes['#recommendations'].innerHTML.includes('2 other segments also match'));
-assert.equal(vm.runInContext('rankFocusSegments().applicable',c),2);
-assert.equal(vm.runInContext('rankFocusSegments().notApplicable',c),3);
-// All five question groups affect the same result and only three are displayed.
-vm.runInContext("symptoms.clear();['0-0','1-1','2-0','3-1','4-1'].forEach(k=>symptoms.add(k));recommend()",c);
-assert.equal(vm.runInContext('rankFocusSegments().applicable',c),5);
-assert.equal(vm.runInContext('rankFocusSegments().notApplicable',c),0);
-assert.equal((nodes['#recommendations'].innerHTML.match(/class="recommenditem"/g)||[]).length,3);
-assert(vm.runInContext('filtered().every(b=>focusSegments.includes(b.segment))',c));
-const first=Array.from(vm.runInContext('focusSegments',c));
-vm.runInContext("symptoms.clear();['4-1','3-1','2-0','1-1','0-0'].forEach(k=>symptoms.add(k));recommend()",c);
-assert.deepEqual(Array.from(vm.runInContext('focusSegments',c)),first);
-vm.runInContext('symptoms.clear();recommend()',c);
-assert.equal(vm.runInContext('rankFocusSegments().notApplicable',c),5);
-assert.equal(vm.runInContext('focusSegments',c),null);
-assert.equal(vm.runInContext('filtered().length',c),104);
-console.log('Passed: equal weighting across questions, skipped questions excluded, top-three cap, additional-match notice, order independence, focused library, no-answer state.');
+const scope=page(6);assert(scope.run("APPLICABILITY.behaviors['6.5'].notApplicable.includes('locked-down device')"));assert(scope.run("APPLICABILITY.behaviors['6.9'].notApplicable.includes('outbound transfer legs')"));assert(scope.run("APPLICABILITY.behaviors['6.10'].notApplicable.includes('all call legs')||APPLICABILITY.behaviors['6.10'].notApplicable.includes('All call legs')"));assert(scope.run("APPLICABILITY.behaviors['12.4'].notApplicable.includes('Do not exclude')"));assert(scope.run("APPLICABILITY.behaviors['5.2'].notApplicable.includes('not authorization')"));assert.equal(scope.run('Object.keys(APPLICABILITY.behaviors).length'),104);assert.equal(scope.run('Object.keys(APPLICABILITY.segments).length'),12);console.log('Passed: applicability coverage on 12 segments and 104 behavior details, controlled-device conditions, call-leg exceptions, authorization, and unsolicited-data caveats.');

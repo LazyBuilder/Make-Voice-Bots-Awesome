@@ -1,18 +1,15 @@
+"""Rebuild the portable home entry point; companion pages live in site/segments/."""
 from pathlib import Path
 import base64
 import re
-
-repo = Path(__file__).resolve().parents[1]
-site = repo / "site"
-html = (site / "index.html").read_text()
-html = re.sub(r'<link rel="stylesheet" href="style.css[^\"]*">', lambda _: "<style>" + (site / "style.css").read_text() + "</style>", html)
-for name in ("data.js", "solutions.js", "risk-tags.js", "app.js"):
-    html = html.replace(f'<script src="{name}"></script>', "<script>" + (site / name).read_text() + "</script>")
-artwork = base64.b64encode((site / "assets/conversation-fracture.png").read_bytes()).decode()
-html = html.replace("assets/conversation-fracture.png", "data:image/png;base64," + artwork)
-assert '<script src=' not in html
-assert not any(key in html for key in ("localStorage", "sessionStorage", "indexedDB", "<textarea", "fonts.googleapis"))
-destination = repo / "downloads/VoiceScope.html"
-destination.parent.mkdir(exist_ok=True)
-destination.write_text(html)
-print(f"Updated {destination.name} with embedded artwork and content.")
+r=Path(__file__).resolve().parents[1]
+p=r/'site'
+h=(p/'index.html').read_text()
+h=re.sub(r'<link rel="stylesheet" href="style.css[^\"]*">',lambda _: '<style>'+(p/'style.css').read_text()+'</style>',h)
+for f in ['data.js','solutions.js','risk-tags.js','segment-guide.js','concepts.js','visuals.js','applicability.js','app.js']:
+ h=h.replace(f'<script src="{f}"></script>','<script>'+(p/f).read_text()+'</script>')
+h=h.replace('assets/conversation-fracture.png','data:image/png;base64,'+base64.b64encode((p/'assets/conversation-fracture.png').read_bytes()).decode())
+h=h.replace('data-root=""','data-root="../site/"').replace('href="segments/','href="../site/segments/').replace('href="index.html','href="../site/index.html')
+(r/'downloads').mkdir(exist_ok=True)
+(r/'downloads/VoiceScope.html').write_text(h)
+print('Updated portable home entry point. Keep the site/ folder with its 12 companion pages.')

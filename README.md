@@ -1,62 +1,56 @@
 # Make Voice Bots Awesome
 
-An interactive field guide to **104 voice bot behavior failures across 12 segments**, for product and project managers.
+A voice bot behavior guide for product and project managers: **12 segments and 104 behaviors**, with risk tags, suggested solutions, live-call handling, after-call follow-up, and test guidance.
 
-The guide starts with the problems people notice: robotic responses, awkward conversations, wrong data, real-call failures, and lost trust. Visitors can narrow the library and open a behavior to understand its failure mode, risks, suggested handling, and test scenario.
+## Open or run
 
-## Publish on GitHub Pages
-
-The repository is configured to deploy `site/` through GitHub Actions when `main` changes. After publishing this local repository to GitHub, select **Settings → Pages → Source → GitHub Actions**, then run the included workflow. See the [complete publishing guide](docs/PUBLISHING.md) for setup and troubleshooting.
-
-## Open the guide
-
-Open **`downloads/VoiceScope.html`** in a browser. It includes the artwork, styles, and application data in one shareable file.
-
-For development, serve the `site` folder:
+Open `site/index.html` in a browser, or serve the site:
 
 ```sh
 python3 -m http.server 8765 --directory site
 ```
 
-Then visit http://localhost:8765. The website needs no installation, build step, API key, or backend.
+Visit http://localhost:8765. No installation, API keys, or backend are required.
 
-## Features
+## How the site works
 
-- Five symptom questions evaluated together. Unanswered questions are treated as not applicable.
-- At most three focus segments, with a notice when additional segments match.
-- Equal weight per applicable question, shared across its selected symptoms. Ties favor broader question coverage, then original segment order.
-- Search, segment navigation, risk-score filters, risk-type filters, and primary handling-stage filters.
-- Eight risk categories: experience, trust, data, operational, financial, privacy/security, consent/boundaries, and accessibility.
-- Problem details and suggested solutions for all 104 behaviors, including **Handle in live call** and **Handle after call** sections.
-- Original numerical risk scores, expandable source notes, glossary, and behavior links.
-- Responsive layout, readable contrast, keyboard controls, and reduced-motion support.
-- No accounts, saved user answers, notes, cookies, browser storage, analytics, or backend collection. Filters exist only in memory while the page is open.
+The home page preserves the hero and introductory panels, then presents 12 segment cards. Each has a one-sentence description and flags for live-call experience and post-call processing impact. There is no questionnaire or individual behavior list on the home page.
 
-A behavior link points to the copy of the guide being viewed. To share a useful web link with other people, host the `site` folder at a public URL; local `file:` and `localhost` addresses only work on the viewer’s own machine.
+Each card opens a dedicated HTML page in `site/segments/`. That page introduces the segment, its overall approach, and its behaviors. Filters operate only within that segment. Open a behavior for the problem, risk explanations, live-call response, after-call follow-up, and verification steps. Use the home-page link to choose another segment. The problems-and-solutions section has no left menu and uses the full available width.
 
-## Repository contents
+Impact flags describe possible consequences; handling-stage tags describe when to respond or improve the system. They are distinct. “Post-call processing: direct risk” indicates a central data or workflow concern; “possible risk” depends on the particular behavior and implementation.
 
-| Location | Contents |
+## Visual learning
+
+Every segment has an interactive four-step comparison: **Where it breaks** and **Better handling**. Every segment includes its own labeled white-background stick-figure illustration with a recurring caller, USER and AI VOICE BOT labels, and a short problem-versus-better-handling caption. Home-page cards show visual previews. Open a segment illustration at full size when needed. Each segment includes a clickable chart of how many documented behaviors carry each risk tag. These are editorial coverage counts, not likelihoods or incident rates. All 104 behavior details include a small source-score visual.
+
+## Application setup and applicability
+
+Every segment and behavior explains when it applies and when it may be out of scope. These notes consider call direction and transfer legs, simultaneous input/output, speaker isolation and authorization, controlled devices, input channels, task fields, downstream actions, verification, and sensitive data. A mitigation is not automatically an exclusion. Read the behavior-specific condition before ruling out an entire segment.
+
+## Files to edit
+
+| File | Purpose |
 | --- | --- |
-| `site/` | Editable website: HTML, CSS, application logic, structured content, and artwork |
-| `source-documents/` | Both original CSV documents |
-| `downloads/VoiceScope.html` | Self-contained shareable version |
-| `docs/Artwork-brief.txt` | ImageGen artwork brief and generation prompt |
-| `scripts/check.cjs` | Content, recommendation, filtering, and detail checks |
-| `scripts/package-guide.py` | Regenerates the shareable HTML after edits |
-| `scripts/check-source.py` | Verifies original CSV content and Pages-compatible asset paths |
-| `.github/workflows/pages.yml` | Automated checks and GitHub Pages deployment |
+| `site/index.html` | Home page with the 12 segment cards |
+| `site/segments/*.html` | Twelve dedicated segment pages |
+| `site/segment-guide.js` | Segment IDs, slugs, short descriptions, counts, and impact flags |
+| `site/app.js` | Shared behavior views, filters, dialogs, and navigation |
+| `site/applicability.js` | Application-setup scoping guidance for 12 segments and 104 behaviors |
+| `site/concepts.js` | Twelve illustrative failure/fix scenarios |
+| `site/visuals.js` | Interactive comparison diagrams, risk-coverage charts, and source-score visuals |
+| `site/style.css` | Shared visual design and responsive layout |
+| `site/data.js` | Original descriptions, examples, failures, notes, and scores |
+| `site/solutions.js` | Specific recommendations and segment-level testing guidance |
+| `site/risk-tags.js` | Editorial risk classifications and handling stages |
+| `source-documents/` | Original CSVs; preserve these when applying this update |
+| `downloads/VoiceScope.html` | Portable home entry point; requires the companion `site/` folder |
 
-## Edit and verify
+The original scores and source examples remain unchanged. Risk tags, summaries, impact flags, solutions, and tests are editorial guidance.
 
-Edit files in `site/`. The structured content is split into:
+## Verify changes
 
-- `data.js`: source segment descriptions, behavior examples, failure modes, notes, and scores.
-- `solutions.js`: handling recommendations and segment-level test guidance.
-- `risk-tags.js`: risk categories, behavior classifications, primary handling stages, and follow-up guidance.
-- `app.js`: interactions, filtering, recommendation ranking, and detail views.
-
-Run the checks with Node.js, then rebuild the shareable file with Python:
+Use Node.js and Python 3.9 or later:
 
 ```sh
 node scripts/check.cjs
@@ -64,24 +58,16 @@ python3 scripts/check-source.py
 python3 scripts/package-guide.py
 ```
 
-The checks validate content coverage, combined symptom ranking, skipped-question behavior, the three-segment limit, risk and handling filters, and detail rendering. They do not replace browser-based visual checks.
+The checks cover all 104 behaviors, page isolation, filters, resets, deep links, source fidelity, and all static links. Visually review desktop and phone layouts after styling changes.
 
-## Content provenance
+## GitHub Pages
 
-The `source-documents` folder contains **Master Sheet-Table 1.csv** and **Details - 12 Segments-Table 1.csv**, from *Voice Bot Behavioral Ailments — 12 Segments — Part 1*.
+The included `.github/workflows/pages.yml` deploys the entire `site/` directory. Keep the directory structure intact: the segment pages use relative asset paths and work beneath a GitHub project subpath. In GitHub Settings → Pages, select GitHub Actions as the publishing source. Push the source and refreshed portable entry point to `main` to run the checks and publish.
 
-The source supplies 12 segment descriptions, 104 behaviors, examples, failure modes, notes, and three numerical risk dimensions. The website retains the source scores and wording. Symptom mappings, risk-category tags, primary handling stages, suggested solutions, tests, and interface copy are editorial additions. These should be reviewed in the context of the product being built.
+The workflow configures Pages in the publishing job, which has Pages write permission. It does not attempt to configure Pages in the read-only checks job.
 
-Implementation references are linked inside the guide’s Sources & glossary dialog. The custom waveform artwork was generated with the built-in ImageGen tool; its prompt is included in `docs/Artwork-brief.txt`.
+## Share the whole website
 
-## Sharing and hosting
+This is now a multi-page website. Share the hosted URL or zip the **entire `site/` directory**. Sending only `index.html` or `downloads/VoiceScope.html` omits the dedicated pages and assets.
 
-Share `downloads/VoiceScope.html` directly, or publish the contents of `site/` using a static hosting service. This repository is local; creating it does not create a GitHub remote or publish the website.
-
-## Further documentation
-
-- [Publishing and troubleshooting](docs/PUBLISHING.md)
-- [Content model, risk tags, privacy, and recommendation rules](docs/CONTENT.md)
-- [Contributing and verification](CONTRIBUTING.md)
-
-No license has been assigned by this project setup. Decide the intended reuse terms for the supplied documents and generated content before inviting reuse.
+No accounts, saved user answers, notes, browser storage, or analytics are used. Navigation and filters run locally in the browser.

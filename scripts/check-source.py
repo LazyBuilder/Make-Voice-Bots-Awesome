@@ -1,38 +1,32 @@
-"""Validate source fidelity and project-subpath-compatible static assets."""
+"""Check CSV fidelity and every local website asset and navigation link."""
 from pathlib import Path
-import csv
-import json
-import re
+import json,csv,re
 from html.parser import HTMLParser
-
-ROOT = Path(__file__).resolve().parents[1]
-SITE = ROOT / "site"
-data = json.loads((SITE / "data.js").read_text().removeprefix("const DATA=").removesuffix(";"))
-rows = list(csv.reader((ROOT / "source-documents/Details - 12 Segments-Table 1.csv").open()))
-original = {row[0]: row for row in rows if re.fullmatch(r"\d+\.\d+", row[0])}
-assert len(original) == len(data["behaviors"]) == 104
-assert len({b["id"] for b in data["behaviors"]}) == 104
-for behavior in data["behaviors"]:
-    row = original[behavior["id"]]
-    assert [behavior["name"], behavior["example"], behavior["failure"]] == row[1:4]
-    assert behavior["scores"] == list(map(int, row[4:7]))
-    assert behavior["total"] == int(row[7]) == sum(behavior["scores"])
-master = list(csv.reader((ROOT / "source-documents/Master Sheet-Table 1.csv").open()))[1:]
-assert len(master) == len(data["segments"]) == 12
-for segment, row in zip(data["segments"], master):
-    assert [str(segment["id"]), segment["name"], segment["description"]] == row[:3]
-
-class Assets(HTMLParser):
-    def handle_starttag(self, tag, attrs):
-        values = dict(attrs)
-        attr = "src" if tag in ("script", "img") else "href" if tag == "link" else None
-        if attr and values.get(attr):
-            value = values[attr].split("?", 1)[0]
-            assert not value.startswith("/"), f"Root-absolute asset breaks project Pages: {value}"
-            assert (SITE / value).is_file(), f"Missing local asset: {value}"
-
-Assets().feed((SITE / "index.html").read_text())
-for file in SITE.glob("*.js"):
-    assert not re.search(r"localStorage|sessionStorage|indexedDB|document\.cookie|sendBeacon", file.read_text()), file.name
-assert (SITE / ".nojekyll").is_file()
-print("Passed: both CSV sources match all 104 behaviors and 12 segments; assets use relative paths; no storage or tracking APIs.")
+from urllib.parse import urlsplit,unquote
+r=Path(__file__).resolve().parents[1];site=r/'site'
+data=json.loads((site/'data.js').read_text().removeprefix('const DATA=').removesuffix(';'))
+rows=list(csv.reader((r/'source-documents/Details - 12 Segments-Table 1.csv').open()))
+original={row[0]:row for row in rows if re.fullmatch(r'\d+\.\d+',row[0])}
+assert len(original)==len(data['behaviors'])==104
+for b in data['behaviors']:
+ row=original[b['id']];assert [b['name'],b['example'],b['failure']]==row[1:4]
+ assert b['scores']==list(map(int,row[4:7]));assert b['total']==int(row[7])==sum(b['scores'])
+master=list(csv.reader((r/'source-documents/Master Sheet-Table 1.csv').open()))[1:]
+assert len(master)==len(data['segments'])==12
+for s,row in zip(data['segments'],master):assert [str(s['id']),s['name'],s['description']]==row[:3]
+class Check(HTMLParser):
+ def __init__(self,page):super().__init__();self.page=page
+ def handle_starttag(self,tag,attrs):
+  a=dict(attrs)
+  value=a.get('src') if tag in ('script','img') else a.get('href') if tag in ('a','link') else None
+  if not value:return
+  u=urlsplit(value)
+  if u.scheme or u.netloc or not u.path:return
+  assert not u.path.startswith('/'),f'Project-absolute path: {value}'
+  target=(self.page.parent/unquote(u.path)).resolve()
+  assert target.is_relative_to(site.resolve()),f'Link escapes site: {value}'
+  assert target.is_file(),f'Missing link from {self.page}: {value}'
+for page in site.rglob('*.html'):Check(page).feed(page.read_text())
+assert len(list((site/'segments').glob('*.html')))==12
+for f in site.glob('*.js'):assert not re.search(r'localStorage|sessionStorage|indexedDB|document\.cookie|sendBeacon',f.read_text())
+print('Passed: source fidelity, 12 segment pages, all relative assets and links, no storage APIs.')

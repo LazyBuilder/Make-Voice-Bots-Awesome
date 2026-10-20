@@ -1,40 +1,23 @@
-# Content model and recommendation rules
+# Content and navigation
 
-## Original documents
+The website has 13 pages: one overview and 12 segment pages. Stable behavior IDs remain strings, for example `1.1` and `1.10` are different behaviors.
 
-The two CSVs in `source-documents/` are the reference inputs. The master sheet defines 12 segments. The details sheet contains repeated section headers, notes, and 104 numbered behavior rows. The displayed source content lives in `site/data.js`.
+The five-question questionnaire and its recommendation ranking have been removed. The home page now presents all 12 segments. Segment cards use one-sentence summaries and distinguish live-call experience from post-call processing risk. Individual problems, solutions, and approaches belong only on dedicated segment pages.
 
-Behavior IDs such as `1.1` are stable strings, not decimal numbers. `1.10` and `1.1` identify different behaviors. Each behavior has a name, segment, example, failure, three scores, and their total. The numerical scores are copied from the source, not recalculated from risk tags.
+Filters never mix behaviors from other segments. A link ending in `#behavior=3.1` opens that behavior’s detail dialog. A behavior link used on the wrong page routes to the correct segment page.
 
-## Added editorial guidance
+All source examples, failures, notes, and numerical scores remain in `site/data.js`. The source fidelity check compares them with both CSVs. Editorial material lives in `segment-guide.js`, `solutions.js`, and `risk-tags.js`; those additions do not alter the original scores.
 
-`site/solutions.js` holds a specific action for each behavior and shared segment guidance, expected test results, and regression checks. `site/risk-tags.js` holds the risk definitions and per-behavior assignments. Primary handling is `live` or `after`, and every detail view explains both stages.
+When changing a segment title or slug, update its page, home card, all segment-navigation links, and `segment-guide.js` together. Run the link and page-isolation checks afterward.
 
-The eight risk keys are `experience`, `trust`, `data`, `operational`, `financial`, `privacy`, `consent`, and `accessibility`. A behavior can have several tags. These express potential impacts when a behavior is mishandled, rather than measured incident likelihood or a replacement for the source scores.
+The site has no backend or persistent user storage. The eight risk categories and two handling stages remain available in the segment pages. Impact flags on overview cards describe consequences rather than claiming that post-call changes can undo a bad live experience.
 
-The handling filter identifies the primary stage. After-call investigation and improvement cannot replace confirmation or permission needed during the live interaction.
+## Application applicability
 
-## Five-question recommendation logic
+`site/applicability.js` provides Applies when and May be out of scope when notes for all 12 segments and 104 behaviors. These editorial conditions distinguish a missing capability from a mitigation that only reduces risk. Call direction alone does not remove transfer-leg risks, speaker detection does not establish authorization, and not requesting sensitive data does not prevent unsolicited disclosure.
 
-The questions and symptom-to-segment mappings are in `site/app.js`. Visitors may select multiple symptoms per question.
+## Visual explanations and layout
 
-1. Every question with one or more selected symptoms contributes equal weight.
-2. That question’s weight is divided equally among its selected symptoms. Each symptom contributes its share to every mapped segment.
-3. A question with no selected symptom, including a cleared “Not applicable / skip” question, contributes nothing.
-4. Segment scores are summed across all five questions together.
-5. Ties favor matches across more distinct questions, then original segment order. Selection order does not affect the result.
-6. The top three segments, or fewer if fewer match, become focus areas and filter the behavior library.
-7. When more than three match, the interface states how many other segments match without displaying more focus cards.
-8. With no selected symptoms there are no focus recommendations; all 104 behaviors remain available.
+Each segment has a labeled stick-figure illustration with ordinary captions, descriptive alternative text, and a larger-image link. Illustrations also appear on home-page segment cards. Exact prompts are recorded in Labeled-segment-art-prompts.md.
 
-Scores are internal navigation weights, not confidence estimates. No symptom choices persist after the page is closed or refreshed.
-
-## Editing a behavior
-
-Keep the same stable ID across `data.js`, `solutions.js`, and `risk-tags.js`. Preserve original wording and scores unless the source documents themselves are intentionally revised. Review suggested guidance separately from source facts. Rebuild the standalone copy after changing any website file.
-
-The checks currently enforce 104 behaviors and 12 segments. If intentionally expanding the reference collection, update the content and the related counts in checks and interface text together.
-
-## Privacy and external links
-
-The site has no backend, analytics, accounts, saved notes, cookies, or browser storage. It uses system fonts and a local artwork asset. Filter and symptom selections exist in page memory. Hosting providers operate their own infrastructure; the site’s no-storage design is not a claim about the host’s access logs. Sources & glossary includes external documentation links that visitors can choose to open.
+The problems-and-solutions section uses the full page width, without a left segment menu. Visitors can use the home-page navigation to choose another segment. Risk charts count editorial classifications; they are not incident rates. Behavior score graphics preserve the original source scores.
